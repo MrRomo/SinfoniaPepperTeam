@@ -23,6 +23,8 @@
 """
 from azure import Azure
 import cv2
+import face_recognition
+import operator
 import os, sys
 import Queue as qe
 from edit_files import Group
@@ -133,11 +135,32 @@ class Person:
                 people['name'] = 'Desconocido'
         return people
       
+    def faceDetector(self,frame):
+        self.frame=frame
+        #cap = cv2.VideoCapture(0) 
+        #ret, img = cap.read() 
+        rgb_frame = frame[:, :, ::-1]
+        frame_size = frame.shape[0]*frame.shape[1]
+        face_locations = face_recognition.face_locations(rgb_frame)
+        peoples=list()
+        print(face_locations)   
+
+        for face_location in face_locations:        
+            #cv2.rectangle(frame, (face_location[1], face_location[0]), (face_location[3], face_location[2]), (255, 255, 0), 2) 
+            width=face_location[1]-face_location[3]
+            height=face_location[2]-face_location[0]
+            dictionary_of_features={'faceId': None , 'faceRectangle': {'width': int(width), 'top': int(face_location[0]), 'height': int(height), 'left': int(face_location[3])}, 'faceAttributes':None}
+            peoples.append(dictionary_of_features)      
+        peoples.sort(key=sortDictionary,reverse=True) 
+        
+        return  peoples
+
 
     def detectPerson(self, frame):
         self.frame = frame
-        imgBytes = self.check_img(frame)
-        people = self.azureService.detect(imgBytes)
+        # imgBytes = self.check_img(frame)
+        people = self.faceDetector(frame)
+        print(people)
         return people
 
 
@@ -206,3 +229,5 @@ class Less_Blurred:
         else:
             print('review images type')
 
+def sortDictionary(val):
+    return val['faceRectangle']['width']
