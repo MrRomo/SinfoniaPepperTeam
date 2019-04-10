@@ -6,6 +6,7 @@ import requests
 import os
 import sys
 import json
+from utils import Utils
 
 
 class Azure:
@@ -36,10 +37,11 @@ class Azure:
         #self.personInfo = {}
         # self.get_all_names()
         self.codeError = -1
+        self.utils = Utils()
 
 
     def get_secrets(self, ROOT_PATH):
-        with open(ROOT_PATH+"/Resources/AZURE_SECRET_CREDENTIALS.json") as f:
+        with open(ROOT_PATH+"/AZURE_SECRET_CREDENTIALS.json") as f:
             secretInfo = json.load(f)
             return secretInfo["KEY"], secretInfo["BASE_URL"], secretInfo["LARGE_PERSON_GROUP_ID"]
 

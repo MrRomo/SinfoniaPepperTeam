@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # license removed for brevity
+
 """
 //======================================================================//
 //  This software is free: you can redistribute it and/or modify        //
@@ -20,44 +21,47 @@
 //                                                                      //
 //======================================================================//
 """
-import rospy
-import sys
-from Class.characterization import Characterization
-from Class.utils import Utils
-from sinfonia_pepper_tools_interaction.srv import FaceDetector
-from sinfonia_pepper_tools_interaction.srv import FaceMemorize
-from sinfonia_pepper_tools_interaction.srv import FaceRecognize
-from sinfonia_pepper_robot_toolkit.srv import TakePicture
-from sensor_msgs.msg import Image
+
+from person import Person
+from person import Less_Blurred
+from edit_files import Group
 
 
-class FaceID():
-    def __init__(self, camera, person):
-        self.imagePub = rospy.Publisher('/faceImage', Image, queue_size=10)
-        self.person = Characterization(person)
-        self.source = camera
-        self.utils = Utils(self.source, self.person.percent_of_face)
+#import unicodedata
 
-    def detectFace(self, req):
-        frame = self.utils.take_picture_source()
-        people = self.person.detect_person(frame)
-        res = self.utils.add_features_to_image(frame, people)
-        if req.cvWindow:
-            self.imagePub.publish(res["frame"])
-        return res["isInFront"]
+class Characterization:
+    def __init__(self, n_images_to_train):
+        self.persons = Person()
+        self.blurry = Less_Blurred(n_images_to_train)
 
-    
+    def get_persons(self):
+        personsList = self.persons.persons_in_group()
+        for p in personsList:
+            print(p)
+        return personsList
 
-if __name__ == '__main__':
-    try:
-        rospy.init_node('robot_face_node')
-        if(len(sys.argv) > 2):
-            face = FaceID(int(sys.argv[1]), str(sys.argv[2]))
-        else:
-            face = FaceID(3,'cloud')
+    def add_person(self, name, images):
+        self.blurry.sort_less_blurred(images)
+        personId = self.persons.enrol(name, self.blurry.frames)
+        return personId, self.persons
 
-        rospy.Service('robot_face_detector', FaceDetector, face.detectFace)
-        print("robot face node started")
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+    def delete_person(self, name):
+        self.persons.delete_person_by_name(name)
+
+    def indentify_person(self, frame):
+        people = self.persons.identifyPerson(frame)
+        return people
+
+    def detect_person(self, frame):
+        people = self.persons.detectPerson(frame)
+        return people
+
+    def get_persons_attributes(self):
+        G = Group()
+        for p in G.persons:
+            print(p)
+        return G.persons
+
+
+# c = Characterization()
+# c.indentify_person(True)

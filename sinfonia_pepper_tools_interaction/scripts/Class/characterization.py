@@ -22,17 +22,57 @@
 //======================================================================//
 """
 
-from person import Person
+from person_cloud import PersonCloud
+from person_local import PersonLocal
 from person import Less_Blurred
 from edit_files import Group
+import cv2 as cv2
+import sys
+import os
+import json
+from cv_bridge import CvBridge
 
 
-#import unicodedata
+# import unicodedata
 
 class Characterization:
-    def __init__(self, n_images_to_train):
-        self.persons = Person()
-        self.blurry = Less_Blurred(n_images_to_train)
+    def __init__(self,source):
+        self.ROOT_PATH = os.path.dirname(sys.modules['__main__'].__file__)
+        n_imas, percent, n_train = self.get_parameters()
+        self.n_images_to_take = n_imas
+        self.percent_of_face = percent
+        self.n_images_to_train = n_train
+        self.source = source
+        self.persons = self.setPersonSource()
+        self.bridge = CvBridge()
+        print(self.n_images_to_take, self.n_images_to_train, self.percent_of_face)  
+        self.blurry = Less_Blurred(self.n_images_to_train)
+
+    def setPersonSource(self):
+        print("Use {} enviroment".format(self.source))
+        if (self.source == 'local'):
+            return PersonLocal()
+        if (self.source == 'cloud' ):
+            return PersonCloud()
+
+    def get_parameters(self):
+        with open(self.ROOT_PATH+"/Resources/interaction_parameters.json") as f:
+            secretInfo = json.load(f)
+            print("Interaction parameters: ", secretInfo)
+            return secretInfo["n_images_to_take"], secretInfo["percent_of_face"], secretInfo["n_images_to_train"]
+
+    def detect_person(self, frame):
+        people = self.persons.detectPerson(frame)
+        return people
+
+    def indentify_person(self, frame):
+        people = self.persons.identifyPerson(frame)
+        return people
+
+    def add_person(self, name, images):
+        self.blurry.sort_less_blurred(images)
+        personId = self.persons.enrol(name, self.blurry.frames)
+        return personId, self.persons
 
     def get_persons(self):
         personsList = self.persons.persons_in_group()
@@ -40,27 +80,19 @@ class Characterization:
             print(p)
         return personsList
 
-    def add_person(self, name, images):
-        self.blurry.sort_less_blurred(images)
-        personId = self.persons.enrol(name, self.blurry.frames)
-        return personId, self.persons
-
     def delete_person(self, name):
         self.persons.delete_person_by_name(name)
-
-    def indentify_person(self, frame):
-        people = self.persons.identifyPerson(frame)
-        return people
-
-    def detect_person(self, frame):
-        people = self.persons.detectPerson(frame)
-        return people
+    
+    def delete_all_person(self):
+        pass
+        #delete all person group
 
     def get_persons_attributes(self):
         G = Group()
         for p in G.persons:
             print(p)
         return G.persons
+   
 
 
 # c = Characterization()
